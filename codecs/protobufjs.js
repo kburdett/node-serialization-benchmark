@@ -1,20 +1,17 @@
-var protobufjs = require('protobufjs');
-
-var builder = protobufjs.loadProtoFile('./user.proto');
-var User = builder.build('User');
+const protobuf = require('protobufjs');
+const util = require('util');
 
 module.exports = {
-  init: function() {
-  },
-  encode: function(obj) {
-    var user = new User();
-    for (var k in obj) {
-      user[k] = obj[k];
-    }
-    return user.encode().toBuffer();
-  },
-  decode: function(data) {
-    return User.decode(data);
-  },
+    init: async function () {
+        const load = util.promisify(protobuf.load);
+        const root = await load('./user.proto');
+        this._user = root.lookupType("benchmark.User");
+    },
+    encode: function (obj) {
+        return this._user.encode(obj).finish();
+    },
+    decode: function (data) {
+        return this._user.decode(data);
+    },
 };
 

@@ -1,52 +1,39 @@
-var fs = require('fs');
-var path = require('path');
+const fs = require('fs');
+const path = require('path');
+const benchmark = require('benchmark');
+const set = require('lodash/set');
 
-function load(dir) {
-  var codecs = [];
-  var files = fs.readdirSync(dir);
-  for (var i in files) {
-    var basename = path.basename(files[i], '.js');
-    var modname = dir + '/' + basename;
-    codecs.push({
-      name: basename,
-      impl: require(modname)
+async function load(dir) {
+    const files = fs.readdirSync(dir);
+    return await files.reduce(
+        async (acc, file) => {
+            const basename = path.basename(file, '.js');
+            const modname = path.resolve(path.join(dir, basename));
+            const codec = require(modname);
+            if (codec.init) await codec.init();
+            return set(await acc, [basename], codec);
+        },
+        {}
+    );
+}
+
+async function main() {
+    const codecs = await load('./codecs');
+    const input = require('./input.json');
+    suite('encode', codecs, (suite, name, codec) => suite.add(name, () => codec.encode(input)));
+    suite('decode', codecs, (suite, name, codec) => {
+        const encoded = codec.encode(input);
+        suite.add(name, () => codec.decode(encoded));
     });
-  }
-  return codecs;
 }
 
-function main() {
-  var codecs = load('./codecs');
-  var n = 10000;
-  var input = require('./input.json');
-  var rawSize = JSON.stringify(input).length;
-  var i;
-  var j;
-
-  for (i = 0; i < codecs.length; ++i) {
-    var codec = codecs[i];
-    var label = codec.name + ' encode';
-
-    var encodedData = codec.impl.encode(input);
-    var encodedSize = encodedData.length;
-
-    var percent = Math.round((rawSize - encodedSize) / rawSize * 100);
-    console.log(label + ' compress percent: ' + percent + '%');
-    console.time(label);
-    for (j = 0; j < n; ++j) {
-      codec.impl.encode(input);
-    }
-    console.timeEnd(label);
-
-    label = codec.name + ' decode';
-    console.time(label, '\t\t\t');
-    for (j = 0; j < n; ++j) {
-      codec.impl.decode(encodedData);
-    }
-    console.timeEnd(label);
-
-    console.log('-----------------------');
-  }
+function suite(header, codecs, adder) {
+    const suite = new benchmark.Suite;
+    console.log(`### ${header} ###`);
+    Object.entries(codecs).forEach(entry => adder(suite, ...entry));
+    suite.on('cycle', event => console.log(event.target.toString()));
+    suite.on('complete', () => console.log('Fastest is ' + suite.filter('fastest').map('name')));
+    suite.run();
 }
 
-main(process.argv);
+main().catch(err => console.log(err.toString()));

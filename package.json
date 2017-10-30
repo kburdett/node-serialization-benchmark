@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "benchmark": "^2.1.4",
     "jshint": "^2.8.0",
+    "lodash": "^4.17.4",
     "pomelo-protobuf": "^0.4.0",
     "protobufjs": "^6.8.0",
     "protocol-buffers": "^3.1.3",

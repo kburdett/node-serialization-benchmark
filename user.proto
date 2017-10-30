@@ -1,6 +1,10 @@
+syntax = "proto3";
+
+package benchmark;
+
 message User {
-  required string name1234567 = 1;
-  required int32 age1234567 = 2;
-  required int32 sex1234567 = 3;
-  required string msg1234567 = 4;
+    string name1234567 = 1;
+    int32 age1234567 = 2;
+    int32 sex1234567 = 3;
+    string msg1234567 = 4;
 }
